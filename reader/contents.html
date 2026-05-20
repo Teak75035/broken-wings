@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>残翼 · 章节目录 | 阅读器</title>
+    <!-- Tailwind CSS + Font Awesome -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#c3b4f3',
+                        primaryDeep: '#a28be8',
+                        darkbg: '#0a0a0c',
+                        darkcard: '#141418',
+                        darkborder: '#2a2a2f',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                    animation: {
+                        float: 'float 6s ease-in-out infinite',
+                    },
+                    keyframes: {
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0px)' },
+                            '50%': { transform: 'translateY(-6px)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #0a0a0c;
+            font-family: 'Inter', sans-serif;
+            scroll-behavior: smooth;
+        }
+        .noise-bg {
+            background-image: radial-gradient(rgba(255,255,255,0.02) 1px, transparent 1px);
+            background-size: 24px 24px;
+        }
+        .glass-card {
+            background: rgba(20, 20, 24, 0.75);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(195, 180, 243, 0.15);
+            transition: all 0.3s ease;
+        }
+        .chapter-item {
+            transition: all 0.2s ease;
+            border-left: 2px solid transparent;
+        }
+        .chapter-item:hover {
+            background: rgba(195, 180, 243, 0.08);
+            border-left-color: #c3b4f3;
+            transform: translateX(6px);
+        }
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #141418;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #a28be8;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body class="bg-darkbg text-gray-200 noise-bg">
+
+    <!-- 极简导航 -->
+    <nav class="sticky top-0 z-50 glass-card border-b border-darkborder/50 backdrop-blur-lg">
+        <div class="max-w-6xl mx-auto px-6 py-4 flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <i class="fas fa-book-open text-primary text-2xl"></i>
+                <span class="text-xl font-medium tracking-tight bg-gradient-to-r from-primary to-white bg-clip-text text-transparent">残翼 · 阅读器</span>
+            </div>
+            <div class="text-sm text-gray-400 hidden md:block">
+                <i class="fas fa-feather-alt mr-1 text-primary"></i> 平行线叙事
+            </div>
+        </div>
+    </nav>
+
+    <!-- 主内容区 -->
+    <main class="max-w-4xl mx-auto px-6 py-12 md:py-16">
+        <div class="text-center mb-12 md:mb-16">
+            <div class="inline-block mb-4 px-4 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-sm">
+                <i class="fas fa-list-ul mr-1"></i> 全文目录
+            </div>
+            <h1 class="text-3xl md:text-5xl font-bold text-white mb-4">章节索引</h1>
+            <p class="text-gray-400 max-w-lg mx-auto">选择任一章节，展开残翼的故事之旅。</p>
+            <div class="h-px w-20 bg-gradient-to-r from-primary/40 to-transparent mx-auto mt-6"></div>
+        </div>
+
+        <!-- 目录容器 -->
+        <div id="catalog-container" class="space-y-3">
+            <div class="flex justify-center items-center py-20 flex-col gap-4">
+                <div class="w-10 h-10 border-2 border-primary/30 border-t-primary rounded-full animate-spin"></div>
+                <p class="text-gray-400 text-sm">正在加载章节目录...</p>
+            </div>
+        </div>
+
+        <!-- 底部说明 -->
+        <div class="mt-16 pt-8 border-t border-darkborder text-center text-gray-500 text-xs">
+            <i class="fab fa-creative-commons mr-1"></i> 本作品采用 CC BY-NC-SA 4.0 许可 · 非商业 · 署名共享<br>
+        </div>
+    </main>
+
+    <script>
+        // 配置文件路径：contents.txt（与当前页面同目录）
+        const CONTENTS_TXT_URL = './contents.txt';
+
+        async function loadChaptersFromTxt() {
+            const container = document.getElementById('catalog-container');
+            try {
+                const response = await fetch(CONTENTS_TXT_URL);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: 无法加载 contents.txt`);
+                }
+                const text = await response.text();
+                // 按行分割，过滤空行和前后空白
+                let lines = text.split(/\r?\n/).filter(line => line.trim().length > 0);
+                if (lines.length === 0) {
+                    throw new Error('contents.txt 为空，请添加章节文件名（每行一个，如 01.序幕）');
+                }
+                // 去除每行首尾空格
+                lines = lines.map(line => line.trim());
+                
+                // 构建章节数组：提取数字序号和显示标题
+                const chapters = [];
+                for (let rawName of lines) {
+                    // rawName 示例: "01.序幕" 或 "02.初遇"
+                    let orderNum = 9999;
+                    let displayTitle = rawName;
+                    // 尝试提取开头的数字（如 "01"）
+                    const match = rawName.match(/^(\d+)/);
+                    if (match) {
+                        orderNum = parseInt(match[1], 10);
+                        // 去掉数字前缀和点号，得到纯净标题
+                        displayTitle = rawName.replace(/^\d+\.\s*/, '');
+                        if (displayTitle === '') displayTitle = rawName;
+                    }
+                    chapters.push({
+                        fileNameWithoutExt: rawName,   // 例如 "01.序幕"
+                        displayTitle: displayTitle,
+                        orderNum: orderNum,
+                    });
+                }
+                // 按序号排序
+                chapters.sort((a, b) => a.orderNum - b.orderNum);
+                
+                renderChapters(chapters);
+            } catch (error) {
+                console.error('加载失败:', error);
+                container.innerHTML = `
+                    <div class="glass-card rounded-2xl p-8 text-center">
+                        <i class="fas fa-exclamation-triangle text-4xl text-amber-400 mb-3 block"></i>
+                        <p class="text-red-300 font-medium">无法加载章节目录</p>
+                        <p class="text-gray-400 text-sm mt-2">${error.message}</p>
+                        <button onclick="location.reload()" class="mt-5 bg-primary/20 hover:bg-primary/30 text-primary px-5 py-2 rounded-full text-sm transition">
+                            <i class="fas fa-rotate-right mr-1"></i> 重新加载
+                        </button>
+                        <div class="mt-4 text-xs text-gray-500 border-t border-darkborder pt-4">
+                            <p>请确保 <code class="bg-darkcard px-1">contents.txt</code> 文件存在，且每行一个章节文件名（如 <code>01.序幕</code>），不需要 .txt 后缀。</p>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        function renderChapters(chapters) {
+            const container = document.getElementById('catalog-container');
+            if (!chapters.length) {
+                container.innerHTML = `
+                    <div class="glass-card rounded-2xl p-12 text-center">
+                        <i class="fas fa-folder-open text-5xl text-gray-600 mb-4"></i>
+                        <p class="text-gray-400">暂无章节</p>
+                        <p class="text-gray-500 text-sm mt-2">请在 contents.txt 中添加章节文件名（每行一个）</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const listHtml = chapters.map(ch => {
+                // 跳转到 ../reader?c=文件名（不带后缀）
+                const paramValue = encodeURIComponent(ch.fileNameWithoutExt);
+                const readerUrl = `../reader?c=${paramValue}`;
+                // 显示序号（如果有序号则显示，否则不显示）
+                const orderDisplay = ch.orderNum !== 9999 ? `<span class="text-primary text-lg font-mono w-8">${ch.orderNum}</span>` : '<span class="text-primary text-lg font-mono w-8">📖</span>';
+                return `
+                    <a href="${readerUrl}" class="chapter-item block glass-card rounded-xl p-5 transition-all duration-200 group">
+                        <div class="flex items-center justify-between flex-wrap gap-2">
+                            <div class="flex items-center gap-3">
+                                ${orderDisplay}
+                                <div>
+                                    <h3 class="text-white font-medium text-lg group-hover:text-primary transition">${escapeHtml(ch.displayTitle)}</h3>
+                                    <p class="text-gray-500 text-xs mt-0.5">章节 · 残翼</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2 text-primary/60 group-hover:text-primary transition">
+                                <span class="text-sm">开始阅读</span>
+                                <i class="fas fa-arrow-right text-sm"></i>
+                            </div>
+                        </div>
+                    </a>
+                `;
+            }).join('');
+
+            container.innerHTML = `
+                <div class="space-y-3">
+                    ${listHtml}
+                </div>
+                <div class="mt-8 text-center text-gray-500 text-xs flex items-center justify-center gap-2">
+                    <i class="fas fa-layer-group"></i> 共 ${chapters.length} 个章节
+                </div>
+            `;
+        }
+
+        // 简单的防XSS辅助函数
+        function escapeHtml(str) {
+            return str.replace(/[&<>]/g, function(m) {
+                if (m === '&') return '&amp;';
+                if (m === '<') return '&lt;';
+                if (m === '>') return '&gt;';
+                return m;
+            }).replace(/[\uD800-\uDBFF][\uDC00-\uDFFF]/g, function(c) {
+                return c;
+            });
+        }
+
+        // 启动
+        loadChaptersFromTxt();
+    </script>
+</body>
+</html>

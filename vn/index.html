@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>残翼 · Broken Wings | 视觉小说</title>
+    <!-- Tailwind + Font Awesome -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts: 更优雅的字体 -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        // 柔和紫罗兰主色调
+                        primary: '#c3b4f3',
+                        primaryDeep: '#a28be8',
+                        darkbg: '#0a0a0c',
+                        darkcard: '#141418',
+                        darkborder: '#2a2a2f',
+                        'soft-gray': '#a1a1aa',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                    animation: {
+                        'float': 'float 6s ease-in-out infinite',
+                        'glow-pulse': 'glowPulse 3s ease-in-out infinite',
+                        'fade-up': 'fadeUp 0.8s cubic-bezier(0.2, 0.9, 0.4, 1.1) forwards',
+                        'shimmer': 'shimmer 2s infinite',
+                    },
+                    keyframes: {
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0px)' },
+                            '50%': { transform: 'translateY(-12px)' },
+                        },
+                        glowPulse: {
+                            '0%, 100%': { boxShadow: '0 0 5px rgba(195, 180, 243, 0.3)' },
+                            '50%': { boxShadow: '0 0 20px rgba(195, 180, 243, 0.6)' },
+                        },
+                        fadeUp: {
+                            from: { opacity: '0', transform: 'translateY(30px)' },
+                            to: { opacity: '1', transform: 'translateY(0)' },
+                        },
+                        shimmer: {
+                            '0%': { backgroundPosition: '-200% 0' },
+                            '100%': { backgroundPosition: '200% 0' },
+                        }
+                    },
+                    backgroundSize: {
+                        '200%': '200% auto',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* 自定义细腻效果 */
+        body {
+            background-color: #0a0a0c;
+            font-family: 'Inter', sans-serif;
+            scroll-behavior: smooth;
+        }
+        /* 噪声纹理 - 增加质感 */
+        .noise-bg {
+            background-image: radial-gradient(rgba(255,255,255,0.03) 1px, transparent 1px);
+            background-size: 24px 24px;
+        }
+        /* 玻璃特效增强版 */
+        .glass-modern {
+            background: rgba(20, 20, 24, 0.75);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-bottom: 1px solid rgba(195, 180, 243, 0.2);
+        }
+        /* 优雅滚动条 */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #141418;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #a28be8;
+            border-radius: 8px;
+        }
+        /* 角色卡片发光边框 */
+        .char-card {
+            transition: all 0.4s cubic-bezier(0.2, 0.9, 0.4, 1.1);
+            background: linear-gradient(145deg, #141418 0%, #111115 100%);
+        }
+        .char-card:hover {
+            transform: translateY(-12px);
+            border-color: rgba(195, 180, 243, 0.6);
+            box-shadow: 0 25px 35px -12px rgba(0,0,0,0.6), 0 0 0 1px rgba(195, 180, 243, 0.3);
+        }
+        /* 渐变边框特效 */
+        .gradient-border {
+            position: relative;
+            background-clip: padding-box;
+            border: 1px solid transparent;
+            border-radius: 1.25rem;
+        }
+        .gradient-border::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            border-radius: 1.25rem;
+            padding: 1px;
+            background: linear-gradient(135deg, #c3b4f3, #6b4e9e);
+            mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            pointer-events: none;
+        }
+        /* 英雄区字体阴影 */
+        .hero-title-shadow {
+            text-shadow: 0 2px 10px rgba(0,0,0,0.5);
+        }
+        /* 延迟动画类 */
+        .delay-100 { animation-delay: 0.1s; }
+        .delay-200 { animation-delay: 0.2s; }
+        .delay-300 { animation-delay: 0.3s; }
+        .fade-up-init {
+            opacity: 0;
+            transform: translateY(30px);
+        }
+        .fade-up-visible {
+            opacity: 1;
+            transform: translateY(0);
+            transition: opacity 0.7s ease, transform 0.7s ease;
+        }
+        /* 特色卡片微交互 */
+        .feature-card {
+            transition: all 0.3s;
+        }
+        .feature-card:hover {
+            transform: translateY(-6px);
+            background: rgba(195, 180, 243, 0.08);
+            border-color: rgba(195, 180, 243, 0.4);
+        }
+        /* 自定义bilibili品牌色 */
+        .fab.fa-bilibili:before {
+            color: #00A1D6;
+        }
+        .hover\:bg-primary:hover .fab.fa-bilibili:before,
+        .hover\:bg-primary:hover .fab.fa-github:before {
+            color: #0a0a0c;
+        }
+    </style>
+</head>
+<body class="bg-darkbg text-gray-200 noise-bg">
+
+    <!-- 导航栏 - 更细腻玻璃效果 -->
+    <nav class="fixed top-0 left-0 right-0 z-50 glass-modern transition-all duration-300">
+        <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+            <div class="flex items-center gap-2">
+                <img src="../res/logo.png" 
+                     alt="残翼 Broken Wings" 
+                     class="logo-img h-9 w-auto object-contain brightness-110">
+                <span class="hidden sm:inline text-sm font-light tracking-wide text-primary/80 border-l border-primary/30 pl-3">视觉小说 · 诗性叙事</span>
+            </div>
+            <div class="hidden md:flex items-center space-x-8">
+                <a href="#" class="text-gray-300 hover:text-primary transition-all duration-200 text-sm font-medium">首页</a>
+                <a href="#character" class="text-gray-300 hover:text-primary transition-all duration-200 text-sm font-medium">角色</a>
+                <a href="https://github.com/teak75035/broken-wings/releases" class="text-gray-300 hover:text-primary transition-all duration-200 text-sm font-medium">下载</a>
+                <a href="https://t.me/lxwrang" class="text-gray-300 hover:text-primary transition-all duration-200 text-sm font-medium">公告</a>
+            </div>
+            <button class="bg-primary/10 backdrop-blur-sm border border-primary/40 text-primary hover:bg-primary hover:text-darkbg px-5 py-2 rounded-full text-sm font-medium transition-all duration-300 shadow-sm hover:shadow-glow">
+                敬请期待
+            </button>
+        </div>
+    </nav>
+
+    <!-- Hero 主视觉区 - 更具沉浸诗意 -->
+    <section class="relative min-h-screen flex items-center justify-center overflow-hidden hero-bg" 
+             style="background: linear-gradient(135deg, rgba(0,0,0,0.8) 0%, rgba(20,10,30,0.85) 100%), url('../res/webbg.png') center/cover no-repeat fixed;">
+        <!-- 飘浮光尘效果 -->
+        <div class="absolute inset-0 overflow-hidden pointer-events-none">
+            <div class="absolute top-1/4 left-1/4 w-72 h-72 bg-primary/5 rounded-full blur-3xl animate-pulse"></div>
+            <div class="absolute bottom-1/3 right-1/4 w-96 h-96 bg-purple-700/5 rounded-full blur-3xl animate-pulse delay-1000"></div>
+        </div>
+        
+        <div class="relative z-10 text-center max-w-5xl mx-auto px-6 py-20">
+            <h1 class="text-5xl md:text-7xl font-bold tracking-tight bg-gradient-to-r from-primary via-white to-primary bg-clip-text text-transparent mb-6 hero-title-shadow">
+                残翼 · Broken Wings
+            </h1>
+            <p class="text-xl md:text-2xl text-gray-200/90 max-w-2xl mx-auto leading-relaxed mb-10 font-light italic tracking-wide">
+                「相遇和分离，是平行线交错的瞬间」
+            </p>
+            <div class="flex flex-col sm:flex-row gap-5 justify-center">
+                <button class="group relative bg-gradient-to-r from-primary to-primaryDeep text-darkbg px-8 py-4 rounded-full text-lg font-semibold overflow-hidden transition-all duration-300 hover:shadow-xl hover:scale-105">
+                    <i class="fas fa-feather-alt mr-2"></i> 故事将启
+                    <span class="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></span>
+                </button>
+                <a href="../reader/contents.html" class="inline-flex items-center justify-center border border-primary/50 text-primary bg-darkbg/40 backdrop-blur-sm px-8 py-4 rounded-full text-lg font-medium hover:bg-primary hover:text-darkbg transition-all duration-300 gap-2">
+                     在线阅读（小说）
+                </a>
+            </div>
+            <div class="absolute bottom-8 left-1/2 -translate-x-1/2 animate-bounce">
+                <i class="fas fa-chevron-down text-primary/60 text-2xl"></i>
+            </div>
+        </div>
+    </section>
+
+    <!-- 游戏简介区 - 诗意核心 -->
+    <section class="py-24 relative overflow-hidden bg-darkcard/50">
+        <div class="max-w-5xl mx-auto px-6 text-center">
+            <div class="inline-block mb-4 px-4 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-sm">
+                <i class="fas fa-dove mr-1"></i> 原创视觉小说
+            </div>
+            <h2 class="text-4xl md:text-5xl font-bold text-white mb-6 tracking-tight">我们终将重逢</h2>
+            <p class="text-gray-400 text-lg max-w-2xl mx-auto mb-10">失去与相遇，哪怕是平行线的轨迹，也会在无穷远处相交。</p>
+            
+            <div class="flex flex-wrap justify-center gap-3 mb-12">
+                <span class="bg-gradient-to-r from-purple-900/40 to-primary/10 backdrop-blur-sm text-primary px-5 py-2 rounded-full text-sm border border-primary/30">视觉小说</span>
+                <span class="bg-gradient-to-r from-purple-900/40 to-primary/10 backdrop-blur-sm text-primary px-5 py-2 rounded-full text-sm border border-primary/30">剧情向 · 治愈</span>
+                <span class="bg-gradient-to-r from-purple-900/40 to-primary/10 backdrop-blur-sm text-primary px-5 py-2 rounded-full text-sm border border-primary/30">非商业 · 开源</span>
+                <span class="bg-gradient-to-r from-purple-900/40 to-primary/10 backdrop-blur-sm text-primary px-5 py-2 rounded-full text-sm border border-primary/30">Ren'Py引擎</span>
+            </div>
+
+            <div class="relative bg-darkbg/60 backdrop-blur-sm p-8 md:p-10 rounded-2xl border border-darkborder shadow-2xl">
+                <i class="fas fa-quote-left text-primary/30 text-4xl absolute top-6 left-6"></i>
+                <div class="space-y-5 text-gray-300 leading-relaxed text-base md:text-lg">
+                    <p>当一个故事结束时，人们往往会想起它的开始。</p>
+                    <p>无论故事本身是欢乐或是忧伤，是哀伤或是失去，都曾是生命无法割舍的一个愿望。</p>
+                    <p class="font-medium text-primary">—— 我曾经有一个愿望。</p>
+                </div>
+                <div class="mt-6 h-0.5 w-16 bg-gradient-to-r from-primary to-transparent mx-auto"></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 角色展示 - 细腻插图风格 -->
+    <section id="character" class="py-24 bg-darkbg relative">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="text-center mb-16 space-y-3">
+                <span class="text-primary text-sm uppercase tracking-wider border-l-2 border-primary pl-3">邂逅 · 灵魂</span>
+                <h2 class="text-4xl md:text-5xl font-bold text-white">主要角色</h2>
+                <p class="text-gray-400 max-w-lg mx-auto">温柔而孤独的灵魂，在命运交错中铭刻彼此</p>
+            </div>
+
+            <div class="flex flex-wrap justify-center gap-10">
+                <!-- 角色 江舸 -->
+                <div class="char-card w-full md:w-80 rounded-2xl border border-darkborder overflow-hidden transition-all duration-500 group">
+                    <div class="relative h-72 bg-gradient-to-br from-indigo-900/40 via-purple-900/30 to-darkbg flex items-center justify-center overflow-hidden">
+                        <div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/paper-fibers.png')] opacity-20"></div>
+                        <div class="relative z-2 text-center">
+                            <div class="w-28 h-28 mx-auto bg-primary/10 rounded-full flex items-center justify-center border-2 border-primary/50 backdrop-blur-sm">
+                                <i class="fas fa-feather-alt text-5xl text-primary"></i>
+                            </div>
+                            <div class="mt-4 text-3xl font-bold tracking-wider text-white">江舸</div>
+                            <div class="text-primary text-sm mt-1">叙述者 · 寻忆之人</div>
+                        </div>
+                    </div>
+                    <div class="p-6 bg-darkcard/90">
+                        <p class="text-gray-300 text-sm leading-relaxed">“故事总是如此：平行、延伸、相交。而我在每一页笔记里，寻找与你重逢的方程式。”</p>
+                        <div class="mt-4 flex items-center gap-2 text-xs text-primary/70">
+                            <i class="fas fa-book-open"></i>
+                            <span>“失去羽翼，亦将飞翔”</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 角色 铭 -->
+                <div class="char-card w-full md:w-80 rounded-2xl border border-darkborder overflow-hidden transition-all duration-500 group">
+                    <div class="relative h-72 bg-gradient-to-br from-fuchsia-900/30 via-purple-800/20 to-darkbg flex items-center justify-center">
+                        <div class="text-center">
+                            <div class="w-28 h-28 mx-auto bg-primary/5 rounded-full flex items-center justify-center border border-primary/40 backdrop-blur-sm">
+                                <i class="fas fa-star-of-life text-4xl text-primary/80"></i>
+                            </div>
+                            <div class="mt-4 text-3xl font-bold text-white">铭</div>
+                            <div class="text-primary text-sm mt-1">神秘少女 · 铭刻者</div>
+                        </div>
+                    </div>
+                    <div class="p-6 bg-darkcard/90">
+                        <p class="text-gray-300 text-sm leading-relaxed">「残缺的双翼，于你而言意味着什么？是失去，还是另一种完整的开始？」</p>
+                        <div class="mt-4 flex items-center gap-2 text-xs text-primary/70">
+                            <i class="fas fa-puzzle-piece"></i>
+                            <span>??? 若相遇即是奇迹</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 第三角色：未来/ 意象角色 (增添完整感) -->
+                <div class="char-card w-full md:w-80 rounded-2xl border border-darkborder/50 bg-darkcard/40 overflow-hidden transition-all duration-500 hover:border-primary/30">
+                    <div class="relative h-72 bg-gradient-to-br from-gray-800/30 to-darkbg flex items-center justify-center">
+                        <div class="text-center">
+                            <div class="w-28 h-28 mx-auto bg-white/5 rounded-full flex items-center justify-center backdrop-blur-sm border border-white/10">
+                                <i class="fas fa-cloud-moon text-4xl text-gray-400"></i>
+                            </div>
+                            <div class="mt-4 text-2xl font-light tracking-wider text-gray-300">???</div>
+                            <div class="text-gray-500 text-sm mt-1">未言之羽</div>
+                        </div>
+                    </div>
+                    <div class="p-6">
+                        <p class="text-gray-400 text-sm italic">「相遇的伏笔，仍在故事的彼端静静生长。」</p>
+                        <div class="mt-4 text-xs text-gray-500"><i class="far fa-hourglass-half mr-1"></i> 敬请期待</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 游戏特色 - 沉浸卡片升级 -->
+    <section class="py-24 bg-darkcard/30 relative">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="text-center mb-16">
+                <div class="inline-flex items-center gap-2 bg-primary/10 rounded-full px-4 py-1 text-primary text-sm border border-primary/20 mb-4">
+                    <i class="fas fa-gem"></i> 独一无二
+                </div>
+                <h2 class="text-4xl md:text-5xl font-bold text-white mb-4">游戏特色</h2>
+                <p class="text-gray-400">纯粹 · 治愈 · 情感共振</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-7">
+                <div class="feature-card bg-darkbg/60 backdrop-blur-sm p-7 rounded-2xl border border-darkborder hover:border-primary/40 transition-all duration-300">
+                    <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-primary/30 to-primary/10 flex items-center justify-center mb-5">
+                        <i class="fas fa-book-open text-primary text-xl"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold text-white mb-2">沉浸叙事</h3>
+                    <p class="text-gray-400 text-sm">细腻文风搭配内心独白，塑造记忆深处的温柔震颤，让每一段对话都成为永恒切片。</p>
+                </div>
+                <div class="feature-card bg-darkbg/60 backdrop-blur-sm p-7 rounded-2xl border border-darkborder hover:border-primary/40 transition-all duration-300">
+                    <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-primary/30 to-primary/10 flex items-center justify-center mb-5">
+                        <i class="fas fa-heart text-primary text-xl"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold text-white mb-2">治愈主题</h3>
+                    <p class="text-gray-400 text-sm">伤痛与救赎并存，在平行线交错的瞬间重拾希望，拥抱残缺之后完整的力量。</p>
+                </div>
+                <div class="feature-card bg-darkbg/60 backdrop-blur-sm p-7 rounded-2xl border border-darkborder hover:border-primary/40 transition-all duration-300">
+                    <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-primary/30 to-primary/10 flex items-center justify-center mb-5">
+                        <i class="fas fa-code text-primary text-xl"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold text-white mb-2">Ren'Py 引擎</h3>
+                    <p class="text-gray-400 text-sm">专业视觉小说框架，丝滑演出效果，稳定跨平台体验，专注剧情表现力。</p>
+                </div>
+                <div class="feature-card bg-darkbg/60 backdrop-blur-sm p-7 rounded-2xl border border-darkborder hover:border-primary/40 transition-all duration-300">
+                    <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-primary/30 to-primary/10 flex items-center justify-center mb-5">
+                        <i class="fas fa-feather-alt text-primary text-xl"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold text-white mb-2">独立灵魂</h3>
+                    <p class="text-gray-400 text-sm">文本、美术、设计均由创作者倾心注入，纯粹无商业妥协，表达完整初心。</p>
+                </div>
+                <div class="feature-card bg-darkbg/60 backdrop-blur-sm p-7 rounded-2xl border border

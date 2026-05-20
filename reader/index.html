@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>残翼 · 阅读器</title>
+    <!-- Tailwind CSS + Font Awesome -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#c3b4f3',
+                        primaryDeep: '#a28be8',
+                        darkbg: '#0a0a0c',
+                        darkcard: '#141418',
+                        darkborder: '#2a2a2f',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #0a0a0c;
+            font-family: 'Inter', sans-serif;
+            scroll-behavior: smooth;
+        }
+        .noise-bg {
+            background-image: radial-gradient(rgba(255,255,255,0.02) 1px, transparent 1px);
+            background-size: 24px 24px;
+        }
+        .glass-card {
+            background: rgba(20, 20, 24, 0.75);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(195, 180, 243, 0.15);
+        }
+        .glass-panel {
+            background: rgba(20, 20, 24, 0.6);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(195, 180, 243, 0.2);
+        }
+        /* 阅读器正文样式 */
+        .reading-content p {
+            text-indent: 2em;
+            line-height: 1.85;
+            margin-bottom: 1.25rem;
+            font-weight: 400;
+            letter-spacing: 0.01em;
+        }
+        /* 基础字体大小 (可由 JS 动态覆盖) */
+        .reading-content {
+            font-size: 1.125rem; /* 18px 基础 */
+        }
+        .reading-content.font-small {
+            font-size: 0.95rem;
+        }
+        .reading-content.font-medium {
+            font-size: 1.125rem;
+        }
+        .reading-content.font-large {
+            font-size: 1.35rem;
+        }
+        /* 自定义滚动条 */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #141418;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #a28be8;
+            border-radius: 8px;
+        }
+        /* 菜单动画 */
+        .menu-enter {
+            transition: all 0.2s ease;
+        }
+    </style>
+</head>
+<body class="bg-darkbg text-gray-200 noise-bg">
+
+    <!-- 固定顶部导航（简洁） -->
+    <nav class="sticky top-0 z-40 glass-card border-b border-darkborder/50">
+        <div class="max-w-5xl mx-auto px-5 py-3 flex justify-between items-center">
+            <a href="./contents.html" class="flex items-center gap-2 text-gray-300 hover:text-primary transition">
+                <i class="fas fa-arrow-left"></i>
+                <span class="text-sm hidden sm:inline">返回目录</span>
+            </a>
+            <div class="flex items-center gap-3">
+                <i class="fas fa-book-open text-primary text-sm"></i>
+                <span class="text-sm font-light" id="chapter-nav-title">残翼 · 阅读中</span>
+            </div>
+            <!-- 调出菜单按钮 -->
+            <button id="menuToggleBtn" class="text-gray-300 hover:text-primary transition">
+                <i class="fas fa-adjust text-lg"></i>
+            </button>
+        </div>
+    </nav>
+
+    <!-- 主要内容区域 -->
+    <main class="max-w-3xl mx-auto px-5 py-8 md:py-12">
+        <!-- 章节标题与统计信息 -->
+        <div class="mb-10 text-center border-b border-darkborder/50 pb-6">
+            <h1 id="chapter-title" class="text-3xl md:text-4xl font-bold text-white mb-3 tracking-tight">加载中...</h1>
+            <div class="flex justify-center gap-6 text-sm text-gray-400">
+                <span><i class="far fa-clock mr-1"></i> 阅读时间: <span id="read-time">--</span> 分钟</span>
+                <span><i class="fas fa-file-alt mr-1"></i> 总字数: <span id="word-count">--</span> 字</span>
+            </div>
+        </div>
+
+        <!-- 正文容器 -->
+        <div id="reading-content" class="reading-content font-medium leading-relaxed">
+            <div class="text-center py-20 text-gray-400">
+                <i class="fas fa-spinner fa-spin text-2xl mb-3 block"></i>
+                正在加载章节内容...
+            </div>
+        </div>
+
+        <!-- 底部导航（上一章/下一章）可选 -->
+        <div class="flex justify-between mt-12 pt-6 border-t border-darkborder/40">
+            <a id="prev-chapter" href="#" class="text-gray-400 hover:text-primary transition text-sm flex items-center gap-1">
+                <i class="fas fa-chevron-left text-xs"></i> 上一章
+            </a>
+            <a href="./contents.html" class="text-gray-400 hover:text-primary transition text-sm">返回目录</a>
+            <a id="next-chapter" href="#" class="text-gray-400 hover:text-primary transition text-sm flex items-center gap-1">
+                下一章 <i class="fas fa-chevron-right text-xs"></i>
+            </a>
+        </div>
+    </main>
+
+    <!-- 字体设置浮动菜单 -->
+    <div id="fontMenu" class="fixed bottom-6 right-6 z-50 hidden">
+        <div class="glass-panel rounded-2xl shadow-xl p-3 flex gap-2 items-center backdrop-blur-md">
+            <button data-font="small" class="font-setting-btn w-8 h-8 rounded-full hover:bg-primary/20 text-primary transition text-sm">A⁻</button>
+            <button data-font="medium" class="font-setting-btn w-8 h-8 rounded-full hover:bg-primary/20 text-primary transition font-medium">A</button>
+            <button data-font="large" class="font-setting-btn w-8 h-8 rounded-full hover:bg-primary/20 text-primary transition text-lg">A⁺</button>
+            <div class="w-px h-6 bg-darkborder mx-1"></div>
+            <button id="closeMenuBtn" class="text-gray-400 hover:text-primary transition text-sm px-2">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- 全局菜单开关按钮（悬浮） -->
+    <button id="floatingMenuBtn" class="fixed bottom-6 right-6 z-40 w-12 h-12 rounded-full glass-card text-primary shadow-lg flex items-center justify-center hover:scale-105 transition">
+        <i class="fas fa-font text-xl"></i>
+    </button>
+
+    <script>
+        // ---------- 工具函数 ----------
+        // 从 URL 获取章节参数 c=文件名（如 01.序幕）
+        function getChapterParam() {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get('c');
+        }
+
+        // 根据文件名提取干净标题（去掉数字前缀和扩展名）
+        function formatTitleFromFilename(rawName) {
+            if (!rawName) return '未知章节';
+            let title = rawName.replace(/\.txt$/i, '');
+            // 去掉开头的数字和点，例如 "01.序幕" -> "序幕"
+            title = title.replace(/^\d+\.\s*/, '');
+            if (title === '') title = rawName;
+            return title;
+        }
+
+        // 估算阅读时间（中文平均每分钟约 300-400字，取350字/分钟）
+        function calcReadTime(wordCount) {
+            if (!wordCount) return 0;
+            const minutes = Math.ceil(wordCount / 350);
+            return minutes;
+        }
+
+        // 统计中文字符数（包含标点，简单统计，过滤空白）
+        function countWords(text) {
+            // 去除换行和空格，统计可见字符
+            const cleaned = text.replace(/\s+/g, '');
+            return cleaned.length;
+        }
+
+        // 将文本内容按行分割为段落数组
+        function parseParagraphs(text) {
+            // 按换行符分割，过滤掉空行（但保留只有空格的行？我们保留非空行）
+            let lines = text.split(/\r?\n/);
+            // 过滤全空行（允许行内只有空格则视为空）
+            lines = lines.filter(line => line.trim().length > 0);
+            return lines;
+        }
+
+        // 渲染正文到 DOM
+        function renderContent(contentText, title) {
+            const container = document.getElementById('reading-content');
+            const paragraphs = parseParagraphs(contentText);
+            
+            if (paragraphs.length === 0) {
+                container.innerHTML = '<div class="text-center py-20 text-gray-400"><i class="fas fa-ban mr-2"></i>该章节暂无正文内容</div>';
+                document.getElementById('word-count').innerText = '0';
+                document.getElementById('read-time').innerText = '0';
+                return;
+            }
+            
+            // 统计总字数
+            const totalChars = countWords(contentText);
+            document.getElementById('word-count').innerText = totalChars.toLocaleString();
+            const readMins = calcReadTime(totalChars);
+            document.getElementById('read-time').innerText = readMins;
+            
+            // 构建段落 HTML
+            const paragraphsHtml = paragraphs.map(para => `<p>${escapeHtml(para)}</p>`).join('');
+            container.innerHTML = paragraphsHtml;
+            
+            // 更新页面标题和导航标题
+            document.title = `${title} · 残翼原稿`;
+            document.getElementById('chapter-title').innerText = title;
+            document.getElementById('chapter-nav-title').innerText = title;
+        }
+        
+        // 防XSS
+        function escapeHtml(str) {
+            return str.replace(/[&<>]/g, function(m) {
+                if (m === '&') return '&amp;';
+                if (m === '<') return '&lt;';
+                if (m === '>') return '&gt;';
+                return m;
+            }).replace(/[\uD800-\uDBFF][\uDC00-\uDFFF]/g, function(c) {
+                return c;
+            });
+        }
+
+        // 加载章节内容（从 ../chapters/文件名.txt）
+        async function loadChapter(fileNameWithoutExt) {
+            const contentDiv = document.getElementById('reading-content');
+            contentDiv.innerHTML = '<div class="text-center py-20 text-gray-400"><i class="fas fa-spinner fa-pulse text-2xl mb-2 block"></i>正在载入章节...</div>';
+            
+            // 构建正确的 txt 文件路径
+            const txtPath = `../chapters/${fileNameWithoutExt}.txt`;
+            try {
+                const response = await fetch(txtPath);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status} - 章节文件不存在或无法读取`);
+                }
+                const text = await response.text();
+                const title = formatTitleFromFilename(fileNameWithoutExt);
+                renderContent(text, title);
+                // 尝试加载相邻章节（基于当前文件名数字前缀）
+                await updateNeighborLinks(fileNameWithoutExt);
+            } catch (error) {
+                console.error('加载章节失败:', error);
+                contentDiv.innerHTML = `
+                    <div class="glass-card rounded-2xl p-8 text-center">
+                        <i class="fas fa-exclamation-triangle text-4xl text-amber-400 mb-3 block"></i>
+                        <p class="text-red-300 font-medium">章节加载失败</p>
+                        <p class="text-gray-400 text-sm mt-2">${error.message}</p>
+                        <a href="./contents.html" class="inline-block mt-5 bg-primary/20 hover:bg-primary/30 text-primary px-5 py-2 rounded-full text-sm transition">
+                            <i class="fas fa-arrow-left mr-1"></i> 返回目录
+                        </a>
+                    </div>
+                `;
+                document.getElementById('chapter-title').innerText = '加载失败';
+                document.getElementById('word-count').innerText = '--';
+                document.getElementById('read-time').innerText = '--';
+            }
+        }
+        
+        // 根据当前文件名，尝试构建上一章/下一章的链接（基于数字前缀）
+        async function updateNeighborLinks(currentFileName) {
+            // 获取所有章节列表（从 contents.txt 读取）
+            const contentsUrl = './contents.txt';
+            try {
+                const resp = await fetch(contentsUrl);
+                if (!resp.ok) return;
+                const txt = await resp.text();
+                let chapters = txt.split(/\r?\n/).filter(line => line.trim().length > 0).map(l => l.trim());
+                if (chapters.length === 0) return;
+                // 找到当前章节的索引
+                const idx = chapters.findIndex(ch => ch === currentFileName);
+                if (idx !== -1) {
+                    const prevLink = idx > 0 ? `?c=${encodeURIComponent(chapters[idx-1])}` : '#';
+                    const nextLink = idx < chapters.length - 1 ? `?c=${encodeURIComponent(chapters[idx+1])}` : '#';
+                    const prevAnchor = document.getElementById('prev-chapter');
+                    const nextAnchor = document.getElementById('next-chapter');
+                    if (prevAnchor) {
+                        prevAnchor.href = prevLink;
+                        prevAnchor.style.opacity = idx > 0 ? '1' : '0.4';
+                        prevAnchor.style.pointerEvents = idx > 0 ? 'auto' : 'none';
+                    }
+                    if (nextAnchor) {
+                        nextAnchor.href = nextLink;
+                        nextAnchor.style.opacity = idx < chapters.length-1 ? '1' : '0.4';
+                        nextAnchor.style.pointerEvents = idx < chapters.length-1 ? 'auto' : 'none';
+                    }
+                }
+            } catch(e) {
+                console.warn('无法加载章节列表用于导航', e);
+            }
+        }
+
+        // ---------- 字体大小菜单交互 ----------
+        function initFontMenu() {
+            const menu = document.getElementById('fontMenu');
+            const floatingBtn = document.getElementById('floatingMenuBtn');
+            const menuToggleBtn = document.getElementById('menuToggleBtn');
+            const closeBtn = document.getElementById('closeMenuBtn');
+            const readingDiv = document.getElementById('reading-content');
+            
+            // 获取存储的字体设置
+            const savedFont = localStorage.getItem('reader_font_size') || 'medium';
+            applyFontSize(savedFont);
+            
+            // 显示/隐藏菜单函数
+            function showMenu() {
+                menu.classList.remove('hidden');
+            }
+            function hideMenu() {
+                menu.classList.add('hidden');
+            }
+            function toggleMenu() {
+                menu.classList.toggle('hidden');
+            }
+            
+            // 绑定打开按钮
+            if (floatingBtn) floatingBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                toggleMenu();
+            });
+            if (menuToggleBtn) menuToggleBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                toggleMenu();
+            });
+            if (closeBtn) closeBtn.addEventListener('click', () => hideMenu());
+            // 点击页面其他地方关闭菜单? 可选
+            document.addEventListener('click', function(e) {
+                if (!menu.contains(e.target) && e.target !== floatingBtn && e.target !== menuToggleBtn && !floatingBtn.contains(e.target)) {
+                    hideMenu();
+                }
+            });
+            
+            // 字体设置按钮
+            const btns = document.querySelectorAll('.font-setting-btn');
+            btns.forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const fontSize = btn.getAttribute('data-font');
+                    if (fontSize) {
+                        applyFontSize(fontSize);
+                        localStorage.setItem('reader_font_size', fontSize);
+                    }
+                    hideMenu();
+                });
+            });
+            
+            function applyFontSize(size) {
+                // 移除现有的字体类
+                readingDiv.classList.remove('font-small', 'font-medium', 'font-large');
+                if (size === 'small') readingDiv.classList.add('font-small');
+                else if (size === 'large') readingDiv.classList.add('font-large');
+                else readingDiv.classList.add('font-medium');
+                // 高亮当前激活按钮样式（视觉可选）
+                btns.forEach(btn => {
+                    if (btn.getAttribute('data-font') === size) {
+                        btn.classList.add('bg-primary/20', 'ring-1', 'ring-primary');
+                    } else {
+                        btn.classList.remove('bg-primary/20', 'ring-1', 'ring-primary');
+                    }
+                });
+            }
+        }
+
+        // ---------- 初始化 ----------
+        async function init() {
+            const chapter = getChapterParam();
+            if (!chapter) {
+                // 没有提供章节参数，显示错误并建议返回目录
+                document.getElementById('reading-content').innerHTML = `
+                    <div class="glass-card rounded-2xl p-8 text-center">
+                        <i class="fas fa-link-slash text-4xl text-amber-400 mb-3 block"></i>
+                        <p class="text-red-300 font-medium">未指定章节</p>
+                        <p class="text-gray-400 text-sm mt-2">请通过目录页选择章节</p>
+                        <a href="./contents.html" class="inline-block mt-5 bg-primary/20 hover:bg-primary/30 text-primary px-5 py-2 rounded-full text-sm transition">
+                            前往目录
+                        </a>
+                    </div>
+                `;
+                document.getElementById('chapter-title').innerText = '无效章节';
+                return;
+            }
+            await loadChapter(chapter);
+            initFontMenu();
+        }
+        
+        init();
+    </script>
+</body>
+</html>
