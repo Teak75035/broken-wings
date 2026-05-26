@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>LocalStorage 编辑器 - VSCode风格IDE</title>
+    <!-- Font Awesome 6 (免费图标库) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- Monaco Editor 样式与加载器会动态引入 -->
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none; /* 提升类似IDE的拖拽体验，不影响文字选择，但在编辑器中可以正常选择 */
+        }
+
+        body {
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+            font-family: 'Segoe UI', 'SF Mono', 'Monaco', 'Cascadia Code', 'Fira Code', monospace;
+            background-color: #1E1E1E;
+            color: #CCCCCC;
+        }
+
+        /* 主布局 - VSCode 风格 */
+        .vscode-container {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            width: 100%;
+        }
+
+        /* 标题栏 (类似VSCode 顶部栏) */
+        .title-bar {
+            background-color: #2D2D2D;
+            padding: 8px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid #3C3C3C;
+            font-size: 13px;
+            font-weight: 500;
+            color: #F0F0F0;
+        }
+
+        .title-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .logo i {
+            font-size: 18px;
+            color: #007ACC;
+        }
+
+        .title-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .title-actions button {
+            background: transparent;
+            border: none;
+            color: #CCCCCC;
+            font-size: 14px;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+
+        .title-actions button:hover {
+            background-color: #3C3C3C;
+            color: white;
+        }
+
+        /* 主体区域: 侧边栏 + 编辑器 */
+        .main-area {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        /* 侧边栏 (类似VSCode 资源管理器) */
+        .sidebar {
+            width: 280px;
+            background-color: #252526;
+            border-right: 1px solid #3C3C3C;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .sidebar-header {
+            padding: 12px 16px;
+            font-weight: 600;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            background-color: #2D2D2D;
+            border-bottom: 1px solid #3C3C3C;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .sidebar-header span {
+            color: #BBBBBB;
+        }
+
+        .refresh-btn {
+            background: none;
+            border: none;
+            color: #CCCCCC;
+            cursor: pointer;
+            font-size: 14px;
+            padding: 4px;
+            border-radius: 4px;
+        }
+
+        .refresh-btn:hover {
+            background-color: #3C3C3C;
+        }
+
+        .key-list-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 4px 0;
+        }
+
+        .key-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 6px 12px 6px 20px;
+            cursor: pointer;
+            font-size: 13px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            border-left: 2px solid transparent;
+            transition: background 0.1s;
+            user-select: none;
+        }
+
+        .key-item:hover {
+            background-color: #2A2D2E;
+        }
+
+        .key-item.active {
+            background-color: #094771;
+            border-left-color: #007ACC;
+            color: white;
+        }
+
+        .key-name {
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            word-break: break-all;
+        }
+
+        .key-actions {
+            display: flex;
+            gap: 8px;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .key-item:hover .key-actions {
+            opacity: 1;
+        }
+
+        .key-actions button {
+            background: transparent;
+            border: none;
+            color: #CCCCCC;
+            cursor: pointer;
+            font-size: 12px;
+            padding: 2px 4px;
+            border-radius: 3px;
+        }
+
+        .key-actions button:hover {
+            color: white;
+            background-color: #3C3C3C;
+        }
+
+        .delete-key:hover {
+            color: #F48771 !important;
+        }
+
+        .rename-key:hover {
+            color: #FFCC66 !important;
+        }
+
+        /* 编辑器区域 */
+        .editor-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background-color: #1E1E1E;
+            overflow: hidden;
+        }
+
+        .editor-toolbar {
+            background-color: #2D2D2D;
+            padding: 6px 12px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border-bottom: 1px solid #3C3C3C;
+            flex-wrap: wrap;
+        }
+
+        .editor-toolbar button, .lang-selector {
+            background-color: #3C3C3C;
+            border: none;
+            color: #E0E0E0;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: 'Segoe UI', sans-serif;
+        }
+
+        .editor-toolbar button:hover {
+            background-color: #505050;
+        }
+
+        .lang-selector {
+            background-color: #252526;
+            border: 1px solid #3C3C3C;
+            cursor: pointer;
+        }
+
+        .status-bar {
+            background-color: #007ACC;
+            color: white;
+            font-size: 12px;
+            padding: 4px 12px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        #monaco-editor-container {
+            flex: 1;
+            min-height: 0;
+            width: 100%;
+        }
+
+        /* 滚动条美化 */
+        ::-webkit-scrollbar {
+            width: 10px;
+            height: 10px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #2D2D2D;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #5A5A5A;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #6A6A6A;
+        }
+
+        .empty-tip {
+            padding: 20px;
+            text-align: center;
+            color: #888;
+            font-size: 13px;
+        }
+    </style>
+</head>
+<body>
+<div class="vscode-container">
+    <div class="title-bar">
+        <div class="title-left">
+            <div class="logo">
+                <i class="fab fa-vscode"></i>
+                <span>LocalStorage 编辑器</span>
+            </div>
+            <span style="font-size: 11px; color: #aaa;">vscode-like IDE</span>
+        </div>
+        <div class="title-actions">
+            <button id="newKeyBtn" title="新建键值对"><i class="fas fa-plus"></i> 新建</button>
+            <button id="clearAllBtn" title="清除所有数据"><i class="fas fa-trash-alt"></i> 清空全部</button>
+        </div>
+    </div>
+    <div class="main-area">
+        <!-- 侧边栏: ls列表 -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <span><i class="fas fa-database"></i> LOCAL STORAGE</span>
+                <button id="refreshSidebarBtn" class="refresh-btn" title="刷新列表"><i class="fas fa-sync-alt"></i></button>
+            </div>
+            <div class="key-list-container" id="keyListContainer">
+                <!-- 动态生成key列表 -->
+                <div class="empty-tip">暂无数据，点击上方新建</div>
+            </div>
+        </div>
+
+        <!-- 编辑器主体 -->
+        <div class="editor-area">
+            <div class="editor-toolbar">
+                <span style="font-size:12px;"><i class="fas fa-code"></i> 当前键: <strong id="currentKeyLabel">未选中</strong></span>
+                <button id="saveBtn"><i class="fas fa-save"></i> 保存 (Ctrl+S)</button>
+                <button id="formatBtn"><i class="fas fa-magic"></i> 格式化 JSON</button>
+                <select id="langSwitcher" class="lang-selector">
+                    <option value="json">JSON 模式</option>
+                    <option value="plaintext">纯文本模式</option>
+                </select>
+                <button id="deleteCurrentBtn"><i class="fas fa-trash"></i> 删除当前键</button>
+            </div>
+            <div id="monaco-editor-container"></div>
+            <div class="status-bar">
+                <span id="statusMsg"><i class="fas fa-info-circle"></i> 就绪</span>
+                <span><i class="fas fa-hdd"></i> 存储实时编辑，需点击保存</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Monaco Editor AMD 加载配置 -->
+<script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs/loader.js"></script>
+<script>
+    (function(){
+        // ---------- 全局状态 ----------
+        let currentKey = null;               // 当前选中的key
+        let originalValue = null;             // 当前key在localStorage中的原始值（用于变更检测）
+        let monacoEditor = null;              // monaco 实例
+        let isEditorReady = false;             // monaco是否加载完成
+        let currentLanguage = "json";          // 当前编辑器语言模式
+        
+        // DOM 元素
+        const keyListContainer = document.getElementById('keyListContainer');
+        const currentKeyLabel = document.getElementById('currentKeyLabel');
+        const statusSpan = document.getElementById('statusMsg');
+        const saveBtn = document.getElementById('saveBtn');
+        const formatBtn = document.getElementById('formatBtn');
+        const langSwitcher = document.getElementById('langSwitcher');
+        const deleteCurrentBtn = document.getElementById('deleteCurrentBtn');
+        const newKeyBtn = document.getElementById('newKeyBtn');
+        const clearAllBtn = document.getElementById('clearAllBtn');
+        const refreshSidebarBtn = document.getElementById('refreshSidebarBtn');
+
+        // 辅助函数: 显示状态消息 (3秒后自动清除提示部分)
+        let statusTimeout = null;
+        function setStatusMessage(msg, isError = false) {
+            if(statusTimeout) clearTimeout(statusTimeout);
+            const prefix = isError ? '<i class="fas fa-exclamation-triangle"></i> ' : '<i class="fas fa-check-circle"></i> ';
+            statusSpan.innerHTML = prefix + msg;
+            statusTimeout = setTimeout(() => {
+                if(statusSpan.innerHTML.includes(msg)) {
+                    statusSpan.innerHTML = '<i class="fas fa-info-circle"></i> 就绪';
+                }
+            }, 3000);
+        }
+        
+        // 获取所有localStorage keys
+        function getAllKeys() {
+            return Object.keys(localStorage);
+        }
+        
+        // 渲染侧边栏 (高亮 currentKey)
+        function renderSidebar() {
+            const keys = getAllKeys();
+            if(!keyListContainer) return;
+            if(keys.length === 0) {
+                keyListContainer.innerHTML = '<div class="empty-tip"><i class="far fa-folder-open"></i> 无存储数据<br>点击「新建」添加键值对</div>';
+                return;
+            }
+            let html = '';
+            keys.forEach(key => {
+                const activeClass = (currentKey === key) ? 'active' : '';
+                // 转义html但不影响显示
+                const escapedKey = escapeHtml(key);
+                html += `
+                    <div class="key-item ${activeClass}" data-key="${escapedKey}">
+                        <span class="key-name" title="${escapedKey}"><i class="fas fa-key"></i> ${escapedKey}</span>
+                        <div class="key-actions">
+                            <button class="rename-key" data-key="${escapedKey}" title="重命名"><i class="fas fa-edit"></i></button>
+                            <button class="delete-key" data-key="${escapedKey}" title="删除"><i class="fas fa-trash-alt"></i></button>
+                        </div>
+                    </div>
+                `;
+            });
+            keyListContainer.innerHTML = html;
+            // 绑定列表项内的事件委托已经在全局委托里做，此处刷新后重新挂载父级监听即可
+        }
+        
+        // 简单防XSS
+        function escapeHtml(str) {
+            return str.replace(/[&<>]/g, function(m) {
+                if(m === '&') return '&amp;';
+                if(m === '<') return '&lt;';
+                if(m === '>') return '&gt;';
+                return m;
+            });
+        }
+        
+        // 保存当前编辑器的内容到 localStorage (并更新originalValue)
+        async function saveCurrentKey() {
+            if(!currentKey) {
+                setStatusMessage("没有选中任何键，请从左侧选择或新建", true);
+                return false;
+            }
+            if(!monacoEditor || !isEditorReady) {
+                setStatusMessage("编辑器尚未就绪", true);
+                return false;
+            }
+            const newValue = monacoEditor.getValue();
+            // 检查是否变化 (和原始值对比)
+            if(newValue === originalValue) {
+                setStatusMessage("值未更改，无需保存");
+                return false;
+            }
+            try {
+                localStorage.setItem(currentKey, newValue);
+                originalValue = newValue;   // 更新原始快照
+                setStatusMessage(`✅ 已保存 "${currentKey}"`);
+                // 保存后刷新侧边栏（可能有其他展示，主要是值变更不会影响key列表，但为了同步其他tab变更？但刷新可保持一致性不必要，但以防万一外部修改，用户手动刷新即可;但此处最好保持不变即可）
+                // 但为了确保列表中的图标无变化，无需重新渲染列表，不过若保存后没有别的副作用，可以不刷新。
+                // 然而如果用户在其他地方修改, 这里不会自动感知, 但保留手动刷新按钮。无碍。
+                // 如果保存的值影响某些特殊视图? 不用刷新列表
+                return true;
+            } catch(e) {
+                setStatusMessage(`保存失败: ${e.message}`, true);
+                return false;
+            }
+        }
+        
+        // 加载指定key的值到编辑器
+        function loadKeyToEditor(key) {
+            if(!monacoEditor || !isEditorReady) {
+                // 如果编辑器没准备好，稍后重试
+                setTimeout(() => loadKeyToEditor(key), 100);
+                return;
+            }
+            if(!key) {
+                monacoEditor.setValue("");
+                currentKeyLabel.innerText = "未选中";
+                currentKey = null;
+                originalValue = null;
+                return;
+            }
+            const rawValue = localStorage.getItem(key) || "";
+            originalValue = rawValue;
+            monacoEditor.setValue(rawValue);
+            currentKey = key;
+            currentKeyLabel.innerText = key;
+            // 根据内容自动建议语言模式？保持当前用户选择模式
+            applyLanguageMode();
+            setStatusMessage(`已加载键 "${key}"，长度 ${rawValue.length} 字符`);
+            // 高亮侧边栏
+            renderSidebar(); // 重新渲染以高亮激活项
+        }
+        
+        // 应用当前语言模式 (json / plaintext)
+        function applyLanguageMode() {
+            if(!monacoEditor) return;
+            const model = monacoEditor.getModel();
+            if(model) {
+                monaco.editor.setModelLanguage(model, currentLanguage);
+            }
+        }
+        
+        // 格式化JSON (美化)
+        function formatJson() {
+            if(!monacoEditor) return;
+            const value = monacoEditor.getValue();
+            if(!value.trim()) {
+                setStatusMessage("内容为空，无法格式化", true);
+                return;
+            }
+            try {
+                const parsed = JSON.parse(value);
+                const pretty = JSON.stringify(parsed, null, 2);
+                monacoEditor.setValue(pretty);
+                setStatusMessage("JSON 格式化完成，记得点击保存");
+            } catch(e) {
+                setStatusMessage("不是有效的JSON，无法格式化", true);
+            }
+        }
+        
+        // 删除当前键
+        function deleteCurrentKey() {
+            if(!currentKey) {
+                setStatusMessage("未选中任何键，无法删除", true);
+                return;
+            }
+            if(confirm(`确定要删除键 "${currentKey}" 吗？数据将被永久移除。`)) {
+                localStorage.removeItem(currentKey);
+                setStatusMessage(`已删除键 "${currentKey}"`);
+                // 清空当前选中
+                currentKey = null;
+                originalValue = null;
+                if(monacoEditor) monacoEditor.setValue("");
+                currentKeyLabel.innerText = "未选中";
+                renderSidebar();    // 刷新列表
+            }
+        }
+        
+        // 删除指定key (用于侧边栏小按钮)
+        function deleteKeyByName(key) {
+            if(!key) return;
+            if(confirm(`确定删除键 "${key}" 吗？`)) {
+                localStorage.removeItem(key);
+                if(currentKey === key) {
+                    currentKey = null;
+                    originalValue = null;
+                    if(monacoEditor) monacoEditor.setValue("");
+                    currentKeyLabel.innerText = "未选中";
+                }
+                renderSidebar();
+                setStatusMessage(`已删除键 "${key}"`);
+            }
+        }
+        
+        // 重命名key
+        function renameKey(oldKey) {
+            const newKey = prompt(`重命名 "${oldKey}" 为新键名:`, oldKey);
+            if(!newKey || newKey === oldKey) return;
+            if(localStorage.getItem(newKey) !== null) {
+                setStatusMessage(`键名 "${newKey}" 已存在，无法重命名`, true);
+                return;
+            }
+            const value = localStorage.getItem(oldKey);
+            localStorage.setItem(newKey, value);
+            localStorage.removeItem(oldKey);
+            setStatusMessage(`已重命名 "${oldKey}" → "${newKey}"`);
+            if(currentKey === oldKey) {
+                // 当前编辑的键被重命名，更新当前键和编辑器内容
+                currentKey = newKey;
+                originalValue = value;
+                currentKeyLabel.innerText = newKey;
+                if(monacoEditor) monacoEditor.setValue(value);
+            }
+            renderSidebar();
+        }
+        
+        // 新建键值对
+        function createNewKey() {
+            let keyName = prompt("请输入新键名:", "");
+            if(!keyName) return;
+            if(localStorage.getItem(keyName) !== null) {
+                setStatusMessage(`键名 "${keyName}" 已存在，请使用其他名称`, true);
+                return;
+            }
+            let initValue = prompt("请输入初始值 (字符串):", "");
+            if(initValue === null) initValue = "";
+            localStorage.setItem(keyName, initValue);
+            setStatusMessage(`新建键 "${keyName}" 成功`);
+            // 自动切换到新键
+            currentKey = keyName;
+            originalValue = initValue;
+            if(monacoEditor) monacoEditor.setValue(initValue);
+            currentKeyLabel.innerText = keyName;
+            renderSidebar();
+        }
+        
+        // 清除所有localStorage
+        function clearAllStorage() {
+            if(confirm("⚠️ 危险操作：将清除浏览器中所有 LocalStorage 数据，不可恢复！确定继续吗？")) {
+                localStorage.clear();
+                currentKey = null;
+                originalValue = null;
+                if(monacoEditor) monacoEditor.setValue("");
+                currentKeyLabel.innerText = "未选中";
+                renderSidebar();
+                setStatusMessage("已清空所有 LocalStorage 数据");
+            }
+        }
+        
+        // 刷新侧边栏并保持当前选中项 (如果已删除则清除)
+        function refreshSidebarAndKeepSelection() {
+            const oldCurrent = currentKey;
+            // 检查旧key是否还存在
+            if(oldCurrent && localStorage.getItem(oldCurrent) === null) {
+                // 已消失
+                currentKey = null;
+                originalValue = null;
+                if(monacoEditor) monacoEditor.setValue("");
+                currentKeyLabel.innerText = "未选中";
+                setStatusMessage("当前选中键已被外部删除");
+            } else if(oldCurrent && localStorage.getItem(oldCurrent) !== null) {
+                // 同步刷新 originalValue (外部可能改动)
+                const freshVal = localStorage.getItem(oldCurrent);
+                if(monacoEditor && freshVal !== originalValue) {
+                    // 询问是否加载新值？为了体验，直接加载最新存储值
+                    if(confirm(`键 "${oldCurrent}" 在外部被修改，是否加载最新值到编辑器? 当前编辑器未保存的更改将丢失。`)) {
+                        originalValue = freshVal;
+                        monacoEditor.setValue(freshVal);
+                        setStatusMessage(`已同步最新数据`);
+                    } else {
+                        // 保留编辑器内容，但originalValue不会变，防止覆盖
+                    }
+                } else if(monacoEditor && freshVal === originalValue) {
+                    // 无变化
+                }
+            }
+            renderSidebar();
+        }
+        
+        // 切换语言模式事件
+        function onChangeLanguage() {
+            const newLang = langSwitcher.value;
+            currentLanguage = newLang;
+            applyLanguageMode();
+            setStatusMessage(`编辑器模式切换为 ${newLang === 'json' ? 'JSON' : '纯文本'}`);
+        }
+        
+        // 全局未保存检查 (切换key时调用)
+        async function checkAndSwitchKey(newKey) {
+            if(newKey === currentKey) return;
+            // 检查当前是否有未保存修改
+            if(monacoEditor && currentKey && originalValue !== undefined) {
+                const currentVal = monacoEditor.getValue();
+                if(currentVal !== originalValue) {
+                    const userChoice = confirm(`键 "${currentKey}" 有未保存的更改，是否保存后再切换？\n点击“确定”保存并切换，“取消”放弃更改并切换。`);
+                    if(userChoice) {
+                        const saved = await saveCurrentKey();
+                        if(!saved) {
+                            setStatusMessage("保存失败，切换取消", true);
+                            return false;
+                        }
+                    } else {
+                        // 放弃更改: 重置编辑器内容为原始值
+                        monacoEditor.setValue(originalValue);
+                    }
+                }
+            }
+            loadKeyToEditor(newKey);
+            return true;
+        }
+        
+        // 监听侧边栏事件 (委托)
+        function bindSidebarEvents() {
+            keyListContainer.addEventListener('click', (e) => {
+                // 点击项目本身 (key-item)
+                let target = e.target;
+                const keyItem = target.closest('.key-item');
+                if(!keyItem) return;
+                const keyName = keyItem.getAttribute('data-key');
+                if(!keyName) return;
+                // 处理删除按钮
+                if(target.closest('.delete-key')) {
+                    e.stopPropagation();
+                    deleteKeyByName(keyName);
+                    return;
+                }
+                // 处理重命名按钮
+                if(target.closest('.rename-key')) {
+                    e.stopPropagation();
+                    renameKey(keyName);
+                    return;
+                }
+                // 普通点击选中项
+                if(keyName) {
+                    checkAndSwitchKey(keyName);
+                }
+            });
+        }
+        
+        // 初始化 Monaco Editor
+        function initMonaco() {
+            require.config({ paths: { vs: 'https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs' } });
+            require(['vs/editor/editor.main'], function() {
+                const container = document.getElementById('monaco-editor-container');
+                if(!container) return;
+                monacoEditor = monaco.editor.create(container, {
+                    value: '// 从左侧选择一个键开始编辑\n// 支持 JSON 语法高亮与智能提示',
+                    language: 'json',
+                    theme: 'vs-dark',
+                    automaticLayout: true,
+                    fontSize: 13,
+                    fontFamily: 'Consolas, "Courier New", monospace',
+                    minimap: { enabled: false },
+                    scrollBeyondLastLine: false,
+                    renderWhitespace: 'selection',
+                    tabSize: 2
+                });
+                isEditorReady = true;
+                // 监听ctrl+s 保存
+                monacoEditor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => {
+                    saveCurrentKey();
+                });
+                setStatusMessage("编辑器已加载 (VSCode 内核)");
+                // 如果已经存在选中的key（从localStorage加载侧边栏后可能自动选中的场景？但初始无选中）
+                // 初始渲染侧边栏后默认无选中，用户点击即可。
+                // 额外同步: 无动作
+                // 自动应用当前语言
+                applyLanguageMode();
+            });
+        }
+        
+        // 初始加载侧边栏数据 & 检查是否有默认选中（可选第一个）
+        function initUI() {
+            renderSidebar();
+            bindSidebarEvents();
+            // 如果localStorage有数据且无当前选中，不自动加载，以免覆盖
+        }
+        
+        // 监听新建、清除、刷新等按钮
+        function bindGlobalButtons() {
+            saveBtn.addEventListener('click', () => saveCurrentKey());
+            formatBtn.addEventListener('click', () => formatJson());
+            langSwitcher.addEventListener('change', onChangeLanguage);
+            deleteCurrentBtn.addEventListener('click', () => deleteCurrentKey());
+            newKeyBtn.addEventListener('click', () => createNewKey());
+            clearAllBtn.addEventListener('click', () => clearAllStorage());
+            refreshSidebarBtn.addEventListener('click', () => refreshSidebarAndKeepSelection());
+        }
+        
+        // 启动应用
+        function bootstrap() {
+            initUI();
+            bindGlobalButtons();
+            initMonaco(); // 异步加载monaco
+            // 额外监听 window 关闭或刷新时的提醒(未保存)
+            window.addEventListener('beforeunload', (e) => {
+                if(monacoEditor && currentKey && originalValue !== undefined && monacoEditor.getValue() !== originalValue) {
+                    e.preventDefault();
+                    e.returnValue = '您有未保存的更改，确定离开吗？';
+                    return e.returnValue;
+                }
+            });
+        }
+        
+        bootstrap();
+    })();
+</script>
+</body>
+</html>
