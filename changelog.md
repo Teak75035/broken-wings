@@ -7,4 +7,5 @@
 # 20260526
 - feat.修改已有章节并添加更多共7章节
 - feat.contents生成脚本
+- feat.LocalStorage编辑管理器
 - fix.修复 index页面hero区域第一按钮失效的问题
